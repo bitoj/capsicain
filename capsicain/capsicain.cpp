@@ -737,33 +737,76 @@ void processRewireScancodeToVirtualcode()
 }
 
 
+// helper class to encapsulate GetKeyState call and result
+class ToggleState {
+    private:
+        unsigned short vkey;
+        bool evaluated;
+        bool toggled;
+    
+    public:
+        ToggleState(unsigned short virtualKey) {
+            vkey = virtualKey;
+            toggled = false;
+            evaluated = false;
+        }
+
+        bool reset() {
+            evaluated = false;
+        }
+
+        bool on() {
+            if (!evaluated) {
+                toggled = GetKeyState(vkey) & 0x0001;
+                evaluated = true;
+            }
+            return toggled;
+        }
+};
+
+
+
 void processCombos()
 {
     if (!loopState.isDownstroke)  //this check breaks 'x []' : // || (modifierState.modifierDown == 0 && modifierState.modifierTapped == 0 && modifierState.activeDeadkey == 0))
         return;
 
-    unsigned short downOrToggled = modifierState.modifierDown;
-    if ((GetKeyState(VK_CAPITAL) & 0x0001))
-        downOrToggled |= BITMASK_CAPSLOCKED;
+    ToggleState capsToggle(VK_CAPITAL);
+
     for (ModifierCombo modcombo : allMaps.modCombos)
     {
-        if (modcombo.vkey == loopState.vcode)
-        {
-            if (
-                (modifierState.activeDeadkey == modcombo.deadkey) &&
-                (downOrToggled & modcombo.modAnd) == modcombo.modAnd &&
-                (modcombo.modOr == 0 || (downOrToggled & modcombo.modOr) > 0) &&
-                (downOrToggled & modcombo.modNot) == 0 &&
-                ((modifierState.modifierTapped & modcombo.modTap) == modcombo.modTap)
-                )
-            {
-                loopState.resultingVKeyEventSequence = modcombo.keyEventSequence;
-                modifierState.modifierTapped = 0;
-                break;
-            }
+        bool match = (modcombo.vkey == loopState.vcode);
+
+        // AND variations without need to access toggle state
+        if (match && modifierState.activeDeadkey != modcombo.deadkey)
+            match = false;
+        if (match && (modifierState.modifierDown & modcombo.modAnd & ~BITMASK_CAPSLOCKED) != (modcombo.modAnd & ~BITMASK_CAPSLOCKED))
+            match = false;
+        if (match && (modifierState.modifierDown & modcombo.modNot & ~BITMASK_CAPSLOCKED) != 0)
+            match = false;
+        if (match && (modifierState.modifierTapped & modcombo.modTap) != modcombo.modTap)
+            match = false;
+
+        // AND variations with toggle state
+        if (match && (modcombo.modAnd & BITMASK_CAPSLOCKED) != 0 && !capsToggle.on())
+            match = false;
+        if (match && (modcombo.modNot & BITMASK_CAPSLOCKED) != 0 && capsToggle.on())
+            match = false;
+
+        // inclusive OR; might be extended with XOR support
+        if (match && modcombo.modOr != 0) {
+            bool inclusiveOrResult = (modifierState.modifierDown & modcombo.modOr & ~BITMASK_CAPSLOCKED) != 0 || (modcombo.modOr & BITMASK_CAPSLOCKED) != 0 && capsToggle.on();
+            if (!inclusiveOrResult)
+                match = false;
+        }
+
+        if (match) {
+            loopState.resultingVKeyEventSequence = modcombo.keyEventSequence;
+            modifierState.modifierTapped = 0;
+            break;
         }
     }
-    if(!loopState.isModifier)
+    if (!loopState.isModifier)
         modifierState.activeDeadkey = 0;
 }
 
