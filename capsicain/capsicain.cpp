@@ -753,15 +753,18 @@ void processCombos()
     if (!loopState.isDownstroke)  //this check breaks 'x []' : // || (modifierState.modifierDown == 0 && modifierState.modifierTapped == 0 && modifierState.activeDeadkey == 0))
         return;
 
+    unsigned short downOrToggled = modifierState.modifierDown;
+    if ((GetKeyState(VK_CAPITAL) & 0x0001))
+        downOrToggled |= BITMASK_CAPSLOCKED;
     for (ModifierCombo modcombo : allMaps.modCombos)
     {
         if (modcombo.vkey == loopState.vcode)
         {
             if (
                 (modifierState.activeDeadkey == modcombo.deadkey) &&
-                (modifierState.modifierDown & modcombo.modAnd) == modcombo.modAnd &&
-                (modcombo.modOr == 0 || (modifierState.modifierDown & modcombo.modOr) > 0) &&
-                (modifierState.modifierDown & modcombo.modNot) == 0 &&
+                (downOrToggled & modcombo.modAnd) == modcombo.modAnd &&
+                (modcombo.modOr == 0 || (downOrToggled & modcombo.modOr) > 0) &&
+                (downOrToggled & modcombo.modNot) == 0 &&
                 ((modifierState.modifierTapped & modcombo.modTap) == modcombo.modTap)
                 )
             {
