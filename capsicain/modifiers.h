@@ -35,6 +35,8 @@ bool isVirtualModifier(int vcode);
 // pseudo-modifier representing toggle state maintained by Windows
 #define BITMASK_CAPSLOCKED  0x8000
 
+#define BITMASK_HIGHEST     0x8000
+
 
 #define IS_SHIFT_DOWN (modifierState.modifierDown & BITMASK_LSHIFT || modifierState.modifierDown & BITMASK_RSHIFT)
 #define IS_LSHIFT_DOWN (modifierState.modifierDown & BITMASK_LSHIFT)

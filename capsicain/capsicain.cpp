@@ -56,6 +56,7 @@ struct ModifierCombo
     unsigned short modOr = 0;
     unsigned short modNot = 0;
     unsigned short modTap = 0;
+    unsigned short modXor = 0;
     vector<VKeyEvent> keyEventSequence;
 };
 
@@ -793,10 +794,23 @@ void processCombos()
         if (match && (modcombo.modNot & BITMASK_CAPSLOCKED) != 0 && capsToggle.on())
             match = false;
 
-        // inclusive OR; might be extended with XOR support
-        if (match && modcombo.modOr != 0) {
-            bool inclusiveOrResult = (modifierState.modifierDown & modcombo.modOr & ~BITMASK_CAPSLOCKED) != 0 || (modcombo.modOr & BITMASK_CAPSLOCKED) != 0 && capsToggle.on();
-            if (!inclusiveOrResult)
+        // OR variations
+        if (match && (modcombo.modOr != 0 || modcombo.modXor != 0)) {
+            // inclusive OR result is either final result or one of the operands for XOR later
+            bool orResult = (modifierState.modifierDown & modcombo.modOr & ~BITMASK_CAPSLOCKED) != 0 || (modcombo.modOr & BITMASK_CAPSLOCKED) != 0 && capsToggle.on();
+
+            // take result of inclusive OR and repeatedly apply XOR operator for each XOR (pseudo-)modifier
+            if (modcombo.modXor != 0) {
+                for (unsigned short bitmask = BITMASK_HIGHEST; bitmask != 0; bitmask >>= 1) {
+                    if ((modcombo.modXor & bitmask) != 0) {
+                        if (bitmask == BITMASK_CAPSLOCKED)
+                            orResult ^= capsToggle.on();
+                        else
+                            orResult ^= ((modifierState.modifierDown & bitmask) != 0);
+                    }
+                }
+            }
+            if (!orResult)
                 match = false;
         }
 
@@ -1254,7 +1268,7 @@ bool parseIniCombos(std::vector<std::string> assembledIni)
     if (sectLines.size() == 0)
         return false;
 
-    unsigned short mods[5] = { 0 }; //deadkey, and, or, not, tap
+    unsigned short mods[6] = { 0 }; //deadkey, and, or, not, tap, xor
     vector<VKeyEvent> keyEventSequence;
 
     for (string line : sectLines)
@@ -1266,7 +1280,8 @@ bool parseIniCombos(std::vector<std::string> assembledIni)
             for (ModifierCombo testcombo : allMaps.modCombos)
             {
                 if (key == testcombo.vkey && mods[0] == testcombo.deadkey && mods[1] == testcombo.modAnd
-                    && mods[2] == testcombo.modOr && mods[3] == testcombo.modNot && mods[4] == testcombo.modTap)
+                    && mods[2] == testcombo.modOr && mods[3] == testcombo.modNot && mods[4] == testcombo.modTap
+                    && mods[5] == testcombo.modXor)
                 {
                     //warn only if the combos are different
                     bool redefined = false;
@@ -1293,7 +1308,7 @@ bool parseIniCombos(std::vector<std::string> assembledIni)
                 }
             }
             if(!isDuplicate)
-                allMaps.modCombos.push_back({ key, (unsigned char) mods[0], mods[1], mods[2], mods[3], mods[4], keyEventSequence });
+                allMaps.modCombos.push_back({ key, (unsigned char) mods[0], mods[1], mods[2], mods[3], mods[4], mods[5], keyEventSequence });
         }
         else
             error("Cannot parse combo rule: " + line);
