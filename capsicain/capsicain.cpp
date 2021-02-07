@@ -204,9 +204,6 @@ int main()
     parseIniGlobals();
     switchConfig(globals.activeConfigOnStartup, true);
 
-    interceptionState.interceptionContext = interception_create_context();
-    interception_set_filter(interceptionState.interceptionContext, interception_is_keyboard, INTERCEPTION_FILTER_KEY_ALL);
-
     if (globals.startAHK)
     {
         string msg = startProgramSameFolder(PROGRAM_NAME_AHK);
@@ -230,10 +227,12 @@ int main()
         setLED(globals.capsicainOnOffKey, true);
     }
 
-    raise_process_priority(); //careful: if we spam key events, other processes get no timeslots to process them. Sleep a bit...
-
     IFPROF cout << endl << endl << "Profiling enabled in this build" << endl << "Startup time: " << profiler.stopwatchReadUS() / 1000 << " ms" << endl;
 
+    raise_process_priority(); //careful: if we spam key events, other processes get no timeslots to process them. Sleep a bit...
+
+    interceptionState.interceptionContext = interception_create_context();
+    interception_set_filter(interceptionState.interceptionContext, interception_is_keyboard, INTERCEPTION_FILTER_KEY_ALL);
 
     //CORE LOOP
     while (true)
@@ -344,6 +343,7 @@ int main()
                 continue;
             else
             {
+                setLED(SC_NOP, true); // sync LEDs with Windows state.
                 ShowInTaskbar(); //exit
                 break;
             }
