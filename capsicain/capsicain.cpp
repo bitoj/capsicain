@@ -218,8 +218,6 @@ int main()
     else if (globals.startMinimized)
         ShowInTaskbarMinimized();
 
-    resetCapsNumScrollLock();
-
     if (globals.capsicainOnOffKey == SC_NUMLOCK
         || globals.capsicainOnOffKey == SC_SCRLOCK
         || globals.capsicainOnOffKey == SC_CAPS)
@@ -298,7 +296,6 @@ int main()
         {
             getHardwareId();
             cout << endl << "new keyboard: " << (globalState.deviceIsAppleKeyboard ? "Apple keyboard" : "IBM keyboard") << endl;
-            resetCapsNumScrollLock();
             interceptionState.previousInterceptionDevice = interceptionState.interceptionDevice;
         }
 
@@ -444,6 +441,25 @@ int main()
 void betaTest() //ESC+B
 {
     setLED(SC_CAPS, true);
+
+    //test SendInput
+    //{
+    //    // Create a keyboard event structure
+    //    INPUT ip;
+    //    ip.type = INPUT_KEYBOARD;
+    //    ip.ki.time = 0;
+    //    ip.ki.dwExtraInfo = 0;
+
+    //    // Press a unicode "key"
+    //    ip.ki.dwFlags = KEYEVENTF_UNICODE;
+    //    ip.ki.wVk = 0;
+    //    ip.ki.wScan = 0x0E8; // è
+    //    SendInput(1, &ip, sizeof(INPUT));
+
+    //    // Release key
+    //    ip.ki.dwFlags = KEYEVENTF_UNICODE | KEYEVENTF_KEYUP;
+    //    SendInput(1, &ip, sizeof(INPUT));
+    //}
 
     ////flip icon
     //options.debug = !options.debug;
@@ -886,6 +902,7 @@ bool processCommand()
     {
         cout << endl << endl << "::RESET STATE";
         reset();
+        resetCapsNumScrollLock();
         break;
     }
     case SC_T:
@@ -1505,7 +1522,6 @@ void resetCapsNumScrollLock()
 
 void reset()
 {
-    resetCapsNumScrollLock();
     releaseAllSentKeys();
 
     loopState = defaultLoopState;
@@ -2046,9 +2062,11 @@ void sendVKeyEvent(VKeyEvent keyEvent)
     if (globals.capsicainOnOffKey >0 
         && keyEvent.isDownstroke
         && (globals.capsicainOnOffKey == SC_NUMLOCK || globals.capsicainOnOffKey == SC_SCRLOCK || globals.capsicainOnOffKey == SC_CAPS)
-        && (keyEvent.vcode == SC_NUMLOCK || keyEvent.vcode == SC_SCRLOCK || keyEvent.vcode == SC_CAPS || keyEvent.vcode == SC_ESCAPE)
+        && (keyEvent.vcode == SC_NUMLOCK || keyEvent.vcode == SC_SCRLOCK || keyEvent.vcode == SC_CAPS ) 
+        //does ESC reset ScrLock on some KBs? In that case re-enable ESC check  || keyEvent.vcode == SC_ESCAPE)
         )
     {
+        Sleep(50); //give Windows time to register e.g. NumLock key event, since soon we will query its state
         setLED(globals.capsicainOnOffKey, true);
     }
 }
