@@ -502,7 +502,7 @@ bool parseKeywordCombo(std::string line, int &key, unsigned short(&mods)[6], std
     else if (funcName == "altchar")
     {
         strokeSeq.push_back({ VK_CPS_TEMPRELEASEKEYS, true }); //temp release LSHIFT if it is currently down
-        strokeSeq.push_back({ SC_RALT , true });
+        strokeSeq.push_back({ SC_LALT , true });
         for (int i = 0; i < funcParams.length(); i++)
         {
             char c = funcParams[i];
@@ -525,7 +525,7 @@ bool parseKeywordCombo(std::string line, int &key, unsigned short(&mods)[6], std
             strokeSeq.push_back({ (unsigned char)isc, true });
             strokeSeq.push_back({ (unsigned char)isc, false });
         }
-        strokeSeq.push_back({ SC_RALT , false });
+        strokeSeq.push_back({ SC_LALT , false });
         strokeSeq.push_back({ VK_CPS_TEMPRESTOREKEYS, false });
     }
     else if (funcName == "moddedkey")
